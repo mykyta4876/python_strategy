@@ -1,3 +1,5 @@
+# python momentium_highest_v1.py -s "2024-03-01" -m 100
+# you can set Max momentum by using m parameter.
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -32,7 +34,7 @@ def calculate_momentum_and_ma(data, window=14):
         df['MA'] = df['Close'].rolling(window=window).mean()
     return data
 
-def simulate_trades(market_data, initial_assets=10000):
+def simulate_trades(market_data, initial_assets=10000, max_momentum=0):
     balance = initial_assets
     trades = []
     current_position = None
@@ -49,31 +51,34 @@ def simulate_trades(market_data, initial_assets=10000):
             continue
         highest_market = max(momentums, key=lambda x: abs(momentums[x]))
         highest_momentum = momentums[highest_market]
-        price = market_data[highest_market].loc[date, 'Close']
         ma = market_data[highest_market].loc[date, 'MA']
 
         if current_position:
             trade_type, entry_market, entry_price = current_position
-            if entry_market == highest_market:
-                if trade_type == 'Long' and price < ma:
+            if entry_market != highest_market:
+                price = market_data[entry_market].loc[date, 'Close']
+                if trade_type == 'Long':
                     profit = price - entry_price
                     balance += profit
                     trades.append((date, entry_market, 'Long Exit', price, profit, balance))
                     current_position = None
-                elif trade_type == 'Short' and price > ma:
+                elif trade_type == 'Short':
                     profit = entry_price - price
                     balance += profit
                     trades.append((date, entry_market, 'Short Exit', price, profit, balance))
                     current_position = None
+
             continue
 
+        price = market_data[highest_market].loc[date, 'Close']
         if not current_position:
-            if highest_momentum > 0 and price > ma:
-                current_position = ('Long', highest_market, price)
-                trades.append((date, highest_market, 'Long Entry', price, 0, balance))
-            elif highest_momentum < 0 and price < ma:
-                current_position = ('Short', highest_market, price)
-                trades.append((date, highest_market, 'Short Entry', price, 0, balance))
+            if max_momentum == 0 or max_momentum > abs(highest_momentum):
+                if highest_momentum > 0:
+                    current_position = ('Long', highest_market, price)
+                    trades.append((date, highest_market, 'Long Entry', price, 0, balance))
+                elif highest_momentum < 0:
+                    current_position = ('Short', highest_market, price)
+                    trades.append((date, highest_market, 'Short Entry', price, 0, balance))
 
     return trades, balance
 
@@ -149,10 +154,12 @@ def plot_results(market_data, trades):
     return trades_df
 
 def parse_arguments():
-    parser = argparse.ArgumentParser(description="HA Losig Arrows")
+    parser = argparse.ArgumentParser(description="momentium highest v1")
 
     # Add arguments
     parser.add_argument("--startday", "-s", help="start day, ex: 2024-04-24")
+    # Add arguments
+    parser.add_argument("--maxmomentum", "-m", type=float, help="max momentum")
 
     args = parser.parse_args()
 
@@ -165,10 +172,14 @@ def main():
     if args.startday != None:
         start_date = pd.Timestamp(args.startday)
 
+    max_momentum = 0
+    if args.maxmomentum != None:
+        max_momentum = args.maxmomentum
+
     market_data = load_data(directory)
     market_data = synchronize_start_dates(market_data, start_date)
     calculate_momentum_and_ma(market_data)
-    trades, final_balance = simulate_trades(market_data)
+    trades, final_balance = simulate_trades(market_data, 10000, max_momentum)
     trades_df = plot_results(market_data, trades)
     trades_df.to_csv('trades_result.csv', index=False)
 

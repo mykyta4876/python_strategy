@@ -43,18 +43,5 @@ I need a python script that report followings:
 - Add "startDate" parameter for checking strategy logic.
 
 
-I've developed it, but doesn't work correctly.
-
-The issues are follows:
-no trades
-wrong plot about Book2 symbol.
-
-Can you fix it?
-
-Budget: $30.
-
-If you complete this work successfully, It'll be a long-term job.
-Rate: $5/hr
-
-	As there are csv files of 3 symbol, need 3 charts.
-
+you can set Start Date.
+python momentium_v6.py -s "2024-01-01"

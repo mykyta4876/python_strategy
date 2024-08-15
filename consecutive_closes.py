@@ -20,72 +20,73 @@ def load_data(directory):
     return market_data
 
 def synchronize_start_dates(market_data, start_date):
-    if start_date == None:
+    if start_date is None:
         return market_data
     for market, df in market_data.items():
         market_data[market] = df[df.index >= start_date]
     return market_data
 
-def calculate_momentum_and_ma(data, window=14):
-    for market, df in data.items():
-        df['Momentum'] = df['Close'].diff(window)
-        df['MA'] = df['Close'].rolling(window=window).mean()
-    return data
+def check_consecutive_closes(df, num_consecutive, direction='positive'):
+    if direction == 'positive':
+        return (df['Close'].diff() > 0).rolling(window=num_consecutive).sum().eq(num_consecutive)
+    else:
+        return (df['Close'].diff() < 0).rolling(window=num_consecutive).sum().eq(num_consecutive)
 
-def simulate_trades(market_data, initial_assets=10000):
+def simulate_trades(market_data, initial_assets=10000, num_long_entry=3, num_long_exit=2, num_short_entry=3, num_short_exit=2):
     balance = initial_assets
     trades = []
-    current_position = None
 
-    all_dates = pd.date_range(start=min(df.index.min() for df in market_data.values()),
-                              end=max(df.index.max() for df in market_data.values()))
-
-    for date in all_dates:
-        if not all(date in df.index for df in market_data.values()):
-            continue
-
-        momentums = {market: df.loc[date, 'Momentum'] for market, df in market_data.items() if date in df.index}
-        if not momentums:
-            continue
-        highest_market = max(momentums, key=lambda x: abs(momentums[x]))
-        highest_momentum = momentums[highest_market]
-        price = market_data[highest_market].loc[date, 'Close']
-        ma = market_data[highest_market].loc[date, 'MA']
-
-        if current_position:
-            trade_type, entry_market, entry_price = current_position
-            if entry_market == highest_market:
-                if trade_type == 'Long' and price < ma:
+    for market, df in market_data.items():
+        df['LongEntry'] = check_consecutive_closes(df, num_long_entry, direction='positive')
+        df['LongExit'] = check_consecutive_closes(df, num_long_exit, direction='negative')
+        df['ShortEntry'] = check_consecutive_closes(df, num_short_entry, direction='negative')
+        df['ShortExit'] = check_consecutive_closes(df, num_short_exit, direction='positive')
+        
+        current_position = None
+        
+        for date, row in df.iterrows():
+            price = row['Close']
+            
+            if current_position:
+                trade_type, entry_price, entry_market = current_position
+                
+                if trade_type == 'Long' and row['LongExit']:
                     profit = price - entry_price
                     balance += profit
                     trades.append((date, entry_market, 'Long Exit', price, profit, balance))
                     current_position = None
-                elif trade_type == 'Short' and price > ma:
+                    
+                elif trade_type == 'Short' and row['ShortExit']:
                     profit = entry_price - price
                     balance += profit
                     trades.append((date, entry_market, 'Short Exit', price, profit, balance))
                     current_position = None
-            continue
-
-        if not current_position:
-            if highest_momentum > 0 and price > ma:
-                current_position = ('Long', highest_market, price)
-                trades.append((date, highest_market, 'Long Entry', price, 0, balance))
-            elif highest_momentum < 0 and price < ma:
-                current_position = ('Short', highest_market, price)
-                trades.append((date, highest_market, 'Short Entry', price, 0, balance))
+                    
+            if not current_position:
+                if row['LongEntry']:
+                    current_position = ('Long', price, market)
+                    trades.append((date, market, 'Long Entry', price, 0, balance))
+                    
+                elif row['ShortEntry']:
+                    current_position = ('Short', price, market)
+                    trades.append((date, market, 'Short Entry', price, 0, balance))
 
     return trades, balance
 
 def plot_results(market_data, trades):
-    """ Plot trading results, momentum, MA, and balance over time. """
+    """ Plot trading results and balance over time. """
     trades_df = pd.DataFrame(trades, columns=['Date', 'Symbol', 'TradeType', 'Price', 'Profit', 'Balance'])
+    trades_df['Date'] = pd.to_datetime(trades_df['Date'])
+    trades_df.set_index('Date', inplace=True)
+    
+    # Group by date and take the last balance value for each date
+    balance_df = trades_df[['Balance']].groupby('Date').last().resample('D').ffill()
+    
     plt.figure(figsize=(15, 15))
 
     ax1 = plt.subplot(311)
     for market, df in market_data.items():
         ax1.plot(df.index, df['Close'], label=f'{market} Close Price')
-        ax1.plot(df.index, df['MA'], linestyle='--', label=f'{market} MA')
 
     labels_added = {'Long Entry': False, 'Long Exit': False, 'Short Entry': False, 'Short Exit': False}
     for trade in trades:
@@ -121,27 +122,17 @@ def plot_results(market_data, trades):
             else:
                 ax1.scatter(trade[0], trade[3], color=color, marker=direction)
 
-    ax1.set_title('Market Close Prices, Trades, and MA')
+    ax1.set_title('Market Close Prices and Trades')
     ax1.set_xlabel('Date')
     ax1.set_ylabel('Close Price')
     ax1.legend()
 
     ax2 = plt.subplot(312)
-    ax2.plot(trades_df['Date'], trades_df['Balance'], label='Balance Over Time', color='black')
+    ax2.plot(balance_df.index, balance_df['Balance'], label='Balance Over Time', color='black')
     ax2.set_title('Balance Performance')
     ax2.set_xlabel('Date')
     ax2.set_ylabel('Balance')
     ax2.legend()
-
-    ax3 = plt.subplot(313)
-    for market, df in market_data.items():
-        ax3.plot(df.index, df['Momentum'], linestyle=':', label=f'{market} Momentum')
-        ax3.plot(df.index, df['MA'], linestyle='--', label=f'{market} MA')
-
-    ax3.set_title('Momentum and Moving Average')
-    ax3.set_xlabel('Date')
-    ax3.set_ylabel('Value')
-    ax3.legend()
 
     plt.tight_layout()
     plt.show()
@@ -149,10 +140,14 @@ def plot_results(market_data, trades):
     return trades_df
 
 def parse_arguments():
-    parser = argparse.ArgumentParser(description="HA Losig Arrows")
+    parser = argparse.ArgumentParser(description="Trading Strategy Simulation")
 
     # Add arguments
-    parser.add_argument("--startday", "-s", help="start day, ex: 2024-04-24")
+    parser.add_argument("--startday", "-s", default="", help="start day, ex: 2024-04-24")
+    parser.add_argument("--long_entry", "-le", type=int, default=3, help="Number of consecutive positive closes for long entry")
+    parser.add_argument("--long_exit", "-lx", type=int, default=2, help="Number of consecutive negative closes for long exit")
+    parser.add_argument("--short_entry", "-se", type=int, default=3, help="Number of consecutive negative closes for short entry")
+    parser.add_argument("--short_exit", "-sx", type=int, default=2, help="Number of consecutive positive closes for short exit")
 
     args = parser.parse_args()
 
@@ -162,13 +157,16 @@ def main():
     args = parse_arguments()
     directory = 'MarketData'
     start_date = None
-    if args.startday != None:
+    if args.startday is not None:
         start_date = pd.Timestamp(args.startday)
 
     market_data = load_data(directory)
     market_data = synchronize_start_dates(market_data, start_date)
-    calculate_momentum_and_ma(market_data)
-    trades, final_balance = simulate_trades(market_data)
+    trades, final_balance = simulate_trades(market_data, 
+                                            num_long_entry=args.long_entry,
+                                            num_long_exit=args.long_exit,
+                                            num_short_entry=args.short_entry,
+                                            num_short_exit=args.short_exit)
     trades_df = plot_results(market_data, trades)
     trades_df.to_csv('trades_result.csv', index=False)
 
