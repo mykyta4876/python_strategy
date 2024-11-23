@@ -33,7 +33,7 @@ pip install pandas openpyxl xlsxwriter numpy tqdm
 I've done. I added arguments to the code to calculate course stats or not.
 In case you want to calculate course stats, please use -c flag.
 python horse_racing.py -f newformat.csv -c
-python horse_racing.py -f horse_racing_data.csv -c
+python horse_racing.py -f Book1.csv -c
 In case you don't want to calculate course stats, please don't use -c flag.
 python horse_racing.py -f newformat.csv
 

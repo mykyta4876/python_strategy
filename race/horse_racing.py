@@ -13,7 +13,8 @@ import concurrent.futures
 import threading
 
 flag_course = True
-
+timer_running = True
+data = None
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 logger = logging.getLogger()
@@ -29,6 +30,7 @@ def parse_date(date_str):
 # Function to process a single row
 def process_row(row):
     global flag_course
+    global data
     trainer = row['trainer']
     race_index = row['Index']
     now_date = row['date']
@@ -92,6 +94,7 @@ def test_mode(data):
 
 # Function to update the DataFrame with results
 def update_dataframe(index, result):
+    global data
     for key, value in result.items():
         data.at[index, key] = value
 
@@ -111,33 +114,9 @@ def process_chunk(chunk):
         results.append(result)
     return results
 
-if __name__ == "__main__":
-
-    # Set up argument parser
-    parser = argparse.ArgumentParser(description='Process horse racing data.')
-    parser.add_argument("--file", "-f", type=str, help='Path to the CSV file containing horse racing data')
-    parser.add_argument("--course", "-c", action="store_true", default=False, help="flag to calculate course stats")
-    args = parser.parse_args()
-
-    flag_course = args.course
-    print(f"flag_course: {flag_course}")
-
-    # Load the CSV file with proper encoding
-    file_path = args.file
-    logger.info(f"Loading data from {file_path}")
-
-    if not os.path.exists(file_path):
-        logger.error(f"File not found: {file_path}")
-        sys.exit(1)
-
-    # remove BOM in csv file
-    f = open(file_path, 'r', encoding='ISO-8859-1')
-    content = f.read()
-    f.close()
-    content = content.replace('\xef\xbb\xbf', '')
-    f = open(file_path, 'w', encoding='ISO-8859-1')
-    f.write(content)
-    f.close()
+def main_function(file_path, main_column_name):
+    global data
+    logger.info(f"Processing {main_column_name}")
 
     try:
         data = pd.read_csv(file_path, encoding='ISO-8859-1', low_memory=False)
@@ -180,11 +159,11 @@ if __name__ == "__main__":
         sys.exit(1)
 
     # Convert 'trainer' column to string and handle NaN values
-    data['trainer'] = data['trainer'].fillna('Unknown').astype(str)
+    data[main_column_name] = data[main_column_name].fillna('Unknown').astype(str)
 
     # Create a list of unique trainers and their corresponding short names
-    trainers = data[['trainer']].drop_duplicates()
-    logger.info(f"Found {len(trainers)} unique trainers")
+    trainers = data[[main_column_name]].drop_duplicates()
+    logger.info(f"Found {len(trainers)} unique {main_column_name}")
 
     if flag_course:
         # Get the list of unique courses
@@ -194,7 +173,7 @@ if __name__ == "__main__":
     data['Index'] = data.index
 
     # Create an empty Excel writer object
-    output_file = 'trainers_results.xlsx'
+    output_file = f'{main_column_name}_results.xlsx'
     logger.info(f"Creating Excel file: {output_file}")
     
     # test_mode(data)
@@ -262,7 +241,7 @@ if __name__ == "__main__":
     data = data.reset_index()
 
     # Reorder columns to add new columns next to 'trainer'
-    trainer_index = data.columns.get_loc('trainer')
+    trainer_index = data.columns.get_loc(main_column_name)
     new_columns = data.columns.tolist()
     new_columns = new_columns[:trainer_index+1] + [col for col in results_df.columns if col != 'Index'] + new_columns[trainer_index+1:]
     data = data[new_columns]
@@ -275,4 +254,35 @@ if __name__ == "__main__":
 
     logger.info("Multithreaded processing completed")
 
-    logger.info(f"Trainer appearances, win rates, and course-specific wins written to '{output_file}'")
+    logger.info(f"{main_column_name} appearances, win rates, and course-specific wins written to '{output_file}'")
+
+
+if __name__ == "__main__":
+    # Set up argument parser
+    parser = argparse.ArgumentParser(description='Process horse racing data.')
+    parser.add_argument("--file", "-f", type=str, help='Path to the CSV file containing horse racing data')
+    parser.add_argument("--course", "-c", action="store_true", default=False, help="flag to calculate course stats")
+    args = parser.parse_args()
+
+    flag_course = args.course
+    print(f"flag_course: {flag_course}")
+
+    # Load the CSV file with proper encoding
+    file_path = args.file
+    logger.info(f"Loading data from {file_path}")
+
+    if not os.path.exists(file_path):
+        logger.error(f"File not found: {file_path}")
+        sys.exit(1)
+
+    # remove BOM in csv file
+    f = open(file_path, 'r', encoding='ISO-8859-1')
+    content = f.read()
+    f.close()
+    content = content.replace('\xef\xbb\xbf', '')
+    f = open(file_path, 'w', encoding='ISO-8859-1')
+    f.write(content)
+    f.close()
+
+    main_function(file_path, 'trainer')
+    main_function(file_path, 'Jockey')
