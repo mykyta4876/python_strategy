@@ -80,10 +80,28 @@ def add_previous_yards(input_file, output_file):
     df.drop(columns=['race_order'], inplace=True)
     df.to_csv(output_file, index=False, encoding='ISO-8859-1')
 
+def remove_bom(input_file):
+    f = open(input_file, 'r', encoding='ISO-8859-1')
+    content = f.read()
+    f.close()
+    content = content.replace('\xef\xbb\xbf', '')
+    f = open(input_file, 'w', encoding='ISO-8859-1')
+    f.write(content)
+    f.close()
+
 # Step 4: Merge course accuracy data
 def merge_course_accuracy(main_file, accuracy_file, output_file):
     df_main = pd.read_csv(main_file, encoding='ISO-8859-1')
     df_accuracy = pd.read_csv(accuracy_file, encoding='ISO-8859-1')
+    
+    # Check if 'course' column exists in both dataframes
+    if 'course' not in df_main.columns:
+        logger.error(f"'course' column not found in main file: {main_file}")
+        return
+    if 'course' not in df_accuracy.columns:
+        logger.error(f"'course' column not found in accuracy file: {accuracy_file}")
+        return
+
     df_merged = df_main.merge(df_accuracy, on='course', how='left')
     df_merged.to_csv(output_file, index=False, encoding='ISO-8859-1')
     logger.info(f"Merged course accuracy data saved to {output_file}")
@@ -97,6 +115,8 @@ final_output = 'final_processed.csv'
 course_accuracy_file = 'accuracy.csv'  # Replace with your actual course accuracy file
 
 # Execute the steps in order
+remove_bom(input_file)
+remove_bom(course_accuracy_file)
 normalize_positions(input_file, normalized_output)
 calculate_appearance_frequencies(normalized_output, appearance_output)
 add_previous_yards(appearance_output, yards_output)

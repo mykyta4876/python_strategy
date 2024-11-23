@@ -37,29 +37,14 @@ python horse_racing.py -f Book1.csv -c
 In case you don't want to calculate course stats, please don't use -c flag.
 python horse_racing.py -f newformat.csv
 
-When I calculate course stats with newformat.csv, it gets a issue like this:
-  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python310\lib\site-packages\pandas\core\indexes\base.py", line 3805, in get_loc
-    return self._engine.get_loc(casted_key)
-  File "index.pyx", line 167, in pandas._libs.index.IndexEngine.get_loc
-  File "index.pyx", line 196, in pandas._libs.index.IndexEngine.get_loc
-  File "pandas\\_libs\\hashtable_class_helper.pxi", line 7081, in pandas._libs.hashtable.PyObjectHashTable.get_item
-  File "pandas\\_libs\\hashtable_class_helper.pxi", line 7089, in pandas._libs.hashtable.PyObjectHashTable.get_item
-KeyError: 'Id'
+============================
+I have some new code to incorporate with the other code
+However, it was written by AI
 
-The above exception was the direct cause of the following exception:
+It does several things: 
+1) Takes horses last race finishing position, normalizes that position (by checking number of runners in the race - for last 5 races)
+2) Calculates horses appearance in last 90 and 365 days
+3) Checks the distances of the previous races it ran in
+4) Merges 'course accuracy' data to an additional column in the final file
 
-Traceback (most recent call last):
-  File "Z:\5\upwork\python_strategy\race\horse_racing.py", line 191, in <module>
-    chunk_results = future.result()
-  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python310\lib\concurrent\futures\_base.py", line 451, in result
-    return self.__get_result()
-  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python310\lib\concurrent\futures\_base.py", line 403, in __get_result
-    raise self._exception
-  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python310\lib\concurrent\futures\thread.py", line 58, in run
-    result = self.fn(*self.args, **self.kwargs)
-  File "Z:\5\upwork\python_strategy\race\horse_racing.py", line 84, in process_chunk
-    result = process_row(row)
-  File "Z:\5\upwork\python_strategy\race\horse_racing.py", line 50, in process_row
-    result[f'Course {window} Day Wins'] = timeframe_wins_data.loc[(timeframe_wins_data['course'] == course), 'Id'].nunique()
-
-I think it's because there is a wrong point in the newformat.csv. I don't know which point is wrong now. For fixing this issue, I need more time. what do you think?
+the biggest issue is likely the date/ID columns
