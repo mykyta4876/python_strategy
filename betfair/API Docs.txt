@@ -1,0 +1,267 @@
+API Docs
+
+Here are the details of the historic data API:
+
+    GetMyData - Returns the packages you have purchased
+    GetCollectionOptions - Returns the filter options for a give filter
+    DownloadListOfFiles - Returns a list of files based on a filter
+    GetAdvBasketDataSize - Returns a file count and size based on a filter
+    DownloadFile - Downloads a specific file
+
+GetMyData
+
+Calling this endpoint will return a list of packages that you have purchased and have access to. You only need to include your session token as a header. The below CURL example will return data in JSON
+
+curl -X GET https://historicdata.betfair.com/api/GetMyData -H 'ssoid: YOUR_TOKEN_HERE'
+
+Here's an example of the response:
+
+
+[
+{
+    "sport": "Cricket",                 // The string name of the sport
+    "plan": "Basic Plan",               // The string name of the plan
+    "forDate": "2017-04-01T00:00:00",   // The Month that this item covers
+    "purchaseItemId": 206               // The ID of the purchased item
+},
+{
+    "sport": "Cricket",
+    "plan": "Basic Plan",
+    "forDate": "2017-05-01T00:00:00",
+    "purchaseItemId": 120
+}
+]
+    
+
+GetCollectionOptions
+
+The historic data is quite big & there are a lot of different markets under one event. In order to make it easier, you can filter the files you want. For example, let's assume that we want all the Basic Horse Racing Markets for GB & IRE that are WIN or PLACE during the month of March 2017 (Sizing John in case you forgot).
+
+First, we need to find out what markets, countries and file types are available during that month. To find out we POST a filter that contains information about the package we have previously bought:
+
+
+curl -X POST https://historicdata.betfair.com/api/GetCollectionOptions
+-H 'content-type: application/json' 
+-H 'ssoid: YOUR_TOKEN_HERE' 
+-d '{
+    "sport":"Horse Racing",
+    "plan":"Basic Plan",
+    "fromDay" : 1,
+    "fromMonth": 3,
+    "fromYear" : 2017,
+    "toDay": 31,
+    "toMonth" : 3,
+    "toYear": 2017,
+    "eventId": null,
+    "eventName": null,
+    "marketTypesCollection": [],
+    "countriesCollection" : [],
+    "fileTypeCollection" : []
+}'
+            
+
+Here is a sample of that response:
+
+
+{
+    "marketTypesCollection": [
+        {
+        "name": "PLACE",
+        "count": 4902
+        },
+        {
+        "name": "WIN",
+        "count": 7671
+        },
+        {
+        "name": "ANTEPOST_WIN",
+        "count": 41
+        }
+        //There are more but i have truncated this results ....... 
+    ],
+    "countriesCollection": [
+        {
+        "name": "GB",
+        "count": 5655
+        },
+        {
+        "name": "IE",
+        "count": 1130
+        },
+        {
+        "name": "US",
+        "count": 6917
+        }
+        //There are more but i have truncated this results ....... 
+    ],
+    "fileTypeCollection": [
+        {
+        "name": "E",
+        "count": 1466
+        },
+        {
+        "name": "M",
+        "count": 21622
+        }
+    ]
+    }
+            
+            
+
+Now I can take that information and add filters to create a new request that looks like this:
+
+
+curl -X POST https://historicdata.betfair.com/api/GetCollectionOptions
+-H 'content-type: application/json' 
+-H 'ssoid: YOUR_TOKEN_HERE' 
+-d '{
+    "sport":"Horse Racing",
+    "plan":"Basic Plan",
+    "fromDay" : 1,
+    "fromMonth": 3,
+    "fromYear" : 2017,
+    "toDay": 31,
+    "toMonth" : 3,
+    "toYear": 2017,
+    "eventId": null,
+    "eventName": null,
+    "marketTypesCollection": [ "WIN", "PLACE" ],
+    "countriesCollection" : [ "GB", "IE" ],
+    "fileTypeCollection" : [ "M"]
+}'
+                    
+
+And here is the full response, showing are filter meets the requirements:
+
+
+{
+    "marketTypesCollection": [
+        {
+            "name": "PLACE",
+            "count": 862
+        },
+        {
+            "name": "WIN",
+            "count": 862
+        }
+    ],
+    "countriesCollection": [
+        {
+            "name": "GB",
+            "count": 1424
+        },
+        {
+            "name": "IE",
+            "count": 300
+        }
+    ],
+    "fileTypeCollection": [
+        {
+            "name": "M",
+            "count": 1724
+        }
+    ]
+}
+        
+
+GetAdvBasketDataSize
+
+Once we have a filter that we are happy with, we can now find out how many files and the total size of those files.
+
+
+curl -X POST https://historicdata.betfair.com/api/GetAdvBasketDataSize
+-H 'content-type: application/json' 
+-H 'ssoid: YOUR_TOKEN_HERE' 
+-d '{
+    "sport":"Horse Racing",
+    "plan":"Basic Plan",
+    "fromDay" : 1,
+    "fromMonth": 3,
+    "fromYear" : 2017,
+    "toDay": 31,
+    "toMonth" : 3,
+    "toYear": 2017,
+    "eventId": null,
+    "eventName": null,
+    "marketTypesCollection": [ "WIN", "PLACE" ],
+    "countriesCollection" : [ "GB", "IE" ],
+    "fileTypeCollection" : [ "M"]
+}'
+                                    
+
+Here is an example of the response:
+
+
+{
+    "totalSizeMB": 9,
+    "fileCount": 1724
+}    
+            
+
+DownloadListOfFiles
+
+We now know that we want to pull down 1724 files, if you try and do this on the My Data page the application will dynamical build a TAR file containing all the files you need. This can cause the download to be slow.
+
+To overcome this problem, you can use the API to download lots of file in parallel to reduce the amount of time to get the files. Another benefit is that you can see the marketIds.
+
+
+                    
+
+
+curl -X POST https://historicdata.betfair.com/api/DownloadListOfFiles
+-H 'content-type: application/json' 
+-H 'ssoid: YOUR_TOKEN_HERE' 
+-d '{
+    "sport":"Horse Racing",
+    "plan":"Basic Plan",
+    "fromDay" : 1,
+    "fromMonth": 3,
+    "fromYear" : 2017,
+    "toDay": 31,
+    "toMonth" : 3,
+    "toYear": 2017,
+    "eventId": null,
+    "eventName": null,
+    "marketTypesCollection": [ "WIN", "PLACE" ],
+    "countriesCollection" : [ "GB", "IE" ],
+    "fileTypeCollection" : [ "M"]
+}'
+                                                                
+
+
+            
+            
+
+Here is an example of the response:
+
+
+[
+"/data/xds/historic/BASIC/28139610/1.130129050.bz2",
+"/data/xds/historic/BASIC/28139610/1.130129060.bz2",
+"/data/xds/historic/BASIC/28139610/1.130129070.bz2",
+"/data/xds/historic/BASIC/28139610/1.130129080.bz2",
+"/data/xds/historic/BASIC/28139610/1.130129051.bz2",
+"/data/xds/historic/BASIC/28139610/1.130129061.bz2",
+"/data/xds/historic/BASIC/28139610/1.130129071.bz2",
+"/data/xds/historic/BASIC/28139610/1.130129081.bz2",
+"/data/xds/historic/BASIC/28139610/1.130129055.bz2",
+"/data/xds/historic/BASIC/28139610/1.130129065.bz2",
+"/data/xds/historic/BASIC/28139610/1.130129075.bz2",
+"/data/xds/historic/BASIC/28139610/1.130129056.bz2",
+"/data/xds/historic/BASIC/28133820/1.130026702.bz2",
+"/data/xds/historic/BASIC/28133820/1.130026712.bz2"
+//There are more but i have truncated this results ....... 
+]
+            
+
+DownloadFile
+
+We now have a full list of files that we want to download. You can now download each file, please see the example below:
+
+
+curl -o data.bz2 
+'https://historicdata.betfair.com/api/DownloadFile?filePath=%2Fdata%2Fxds%2Fhistoric%2FBASIC%2F28139610%2F1.130129050.bz2'
+-H 'ssoid: YOUR_TOKEN_HERE'
+            
+
+The CURL command will download the file into the current directory and name the file date.bz2
