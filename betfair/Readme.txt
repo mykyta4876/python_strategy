@@ -25,3 +25,25 @@ https://betfair-datascientists.github.io/api/apiPythontutorial/
 
 SESSION_TOKEN: nZmKr9X1mWWjoVnI9nu5c0kTrv9h2+2BajCHKSHpCFg=
 app_key: mGFywxFhslsFMS3t
+
+
+C:\Users\olive\Downloads
+
+address: BC2F1333B073B20317AE667DCC84F94E
+private: 45F3A03D46A343A935D625BE10A5FA0CCF518510145A8F06F2298B34907C80A1
+comodoca.com
+b688a9d2a61d17a
+
+open ai recovery login/2X8B81D6ANLYQ5R27NAQWWXE
+
+Your Dropbox recovery codes:
+wouzo8mf
+jaex722p
+qg8qvvmp
+e3l4ik5s
+g89r7nlp
+pyqc2amo
+ireup4pn
+nmhj7des
+h4mzzacr
+5jcti88y

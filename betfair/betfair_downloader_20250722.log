@@ -1,0 +1,158 @@
+2025-07-22 21:06:57,888 - BetfairDownloader - INFO - _setup_logging:105 - Logging system initialized
+2025-07-22 21:06:57,888 - BetfairDownloader - DEBUG - _setup_logging:106 - Log files location: betfair_data\logs
+2025-07-22 21:06:57,888 - BetfairDownloader - DEBUG - _log_api_request:110 - API Request: GET https://historicdata.betfair.com/api/GetMyData
+2025-07-22 21:06:58,899 - BetfairDownloader - DEBUG - _log_api_request:110 - API Request: GET https://historicdata.betfair.com/api/GetMyData
+2025-07-22 21:06:58,899 - BetfairDownloader - DEBUG - _log_api_request:114 - API Response Status: 200
+2025-07-22 21:06:58,899 - BetfairDownloader - ERROR - _handle_api_error:127 - API Error in get_my_data: Expecting value: line 4 column 1 (char 6)
+2025-07-22 21:06:58,899 - BetfairDownloader - DEBUG - _log_api_request:110 - API Request: POST https://historicdata.betfair.com/api/GetCollectionOptions
+2025-07-22 21:06:58,899 - BetfairDownloader - DEBUG - _log_api_request:112 - API Payload: {
+  "sport": "Horse Racing",
+  "plan": "Basic Plan",
+  "fromDay": 1,
+  "fromMonth": 3,
+  "fromYear": 2023,
+  "toDay": 31,
+  "toMonth": 3,
+  "toYear": 2023,
+  "eventId": null,
+  "eventName": null,
+  "marketTypesCollection": [
+    "WIN",
+    "PLACE"
+  ],
+  "countriesCollection": [
+    "GB",
+    "IE"
+  ],
+  "fileTypeCollection": [
+    "M"
+  ]
+}
+2025-07-22 21:07:01,666 - BetfairDownloader - DEBUG - _log_api_request:110 - API Request: POST https://historicdata.betfair.com/api/GetCollectionOptions
+2025-07-22 21:07:01,666 - BetfairDownloader - DEBUG - _log_api_request:112 - API Payload: {
+  "sport": "Horse Racing",
+  "plan": "Basic Plan",
+  "fromDay": 1,
+  "fromMonth": 3,
+  "fromYear": 2023,
+  "toDay": 31,
+  "toMonth": 3,
+  "toYear": 2023,
+  "eventId": null,
+  "eventName": null,
+  "marketTypesCollection": [
+    "WIN",
+    "PLACE"
+  ],
+  "countriesCollection": [
+    "GB",
+    "IE"
+  ],
+  "fileTypeCollection": [
+    "M"
+  ]
+}
+2025-07-22 21:07:01,666 - BetfairDownloader - DEBUG - _log_api_request:114 - API Response Status: 200
+2025-07-22 21:07:01,666 - BetfairDownloader - INFO - get_collection_options:205 - Successfully retrieved collection options
+2025-07-22 21:07:01,676 - BetfairDownloader - DEBUG - _log_api_request:110 - API Request: POST https://historicdata.betfair.com/api/GetAdvBasketDataSize
+2025-07-22 21:07:01,677 - BetfairDownloader - DEBUG - _log_api_request:112 - API Payload: {
+  "sport": "Horse Racing",
+  "plan": "Basic Plan",
+  "fromDay": 1,
+  "fromMonth": 3,
+  "fromYear": 2023,
+  "toDay": 31,
+  "toMonth": 3,
+  "toYear": 2023,
+  "eventId": null,
+  "eventName": null,
+  "marketTypesCollection": [
+    "WIN",
+    "PLACE"
+  ],
+  "countriesCollection": [
+    "GB",
+    "IE"
+  ],
+  "fileTypeCollection": [
+    "M"
+  ]
+}
+2025-07-22 21:07:02,615 - BetfairDownloader - DEBUG - _log_api_request:110 - API Request: POST https://historicdata.betfair.com/api/GetAdvBasketDataSize
+2025-07-22 21:07:02,615 - BetfairDownloader - DEBUG - _log_api_request:112 - API Payload: {
+  "sport": "Horse Racing",
+  "plan": "Basic Plan",
+  "fromDay": 1,
+  "fromMonth": 3,
+  "fromYear": 2023,
+  "toDay": 31,
+  "toMonth": 3,
+  "toYear": 2023,
+  "eventId": null,
+  "eventName": null,
+  "marketTypesCollection": [
+    "WIN",
+    "PLACE"
+  ],
+  "countriesCollection": [
+    "GB",
+    "IE"
+  ],
+  "fileTypeCollection": [
+    "M"
+  ]
+}
+2025-07-22 21:07:02,615 - BetfairDownloader - DEBUG - _log_api_request:114 - API Response Status: 200
+2025-07-22 21:07:02,615 - BetfairDownloader - INFO - get_basket_data_size:253 - Data size: 13MB, 1968 files
+2025-07-22 21:07:02,631 - BetfairDownloader - INFO - download_and_process_data:481 - Starting download for Horse Racing - Basic Plan from 2023-03-01 to 2023-03-31
+2025-07-22 21:07:02,631 - BetfairDownloader - DEBUG - _log_api_request:110 - API Request: POST https://historicdata.betfair.com/api/DownloadListOfFiles
+2025-07-22 21:07:02,633 - BetfairDownloader - DEBUG - _log_api_request:112 - API Payload: {
+  "sport": "Horse Racing",
+  "plan": "Basic Plan",
+  "fromDay": 1,
+  "fromMonth": 3,
+  "fromYear": 2023,
+  "toDay": 31,
+  "toMonth": 3,
+  "toYear": 2023,
+  "eventId": null,
+  "eventName": null,
+  "marketTypesCollection": [
+    "WIN",
+    "PLACE"
+  ],
+  "countriesCollection": [
+    "GB",
+    "IE"
+  ],
+  "fileTypeCollection": [
+    "M"
+  ]
+}
+2025-07-22 21:07:03,131 - BetfairDownloader - DEBUG - _log_api_request:110 - API Request: POST https://historicdata.betfair.com/api/DownloadListOfFiles
+2025-07-22 21:07:03,131 - BetfairDownloader - DEBUG - _log_api_request:112 - API Payload: {
+  "sport": "Horse Racing",
+  "plan": "Basic Plan",
+  "fromDay": 1,
+  "fromMonth": 3,
+  "fromYear": 2023,
+  "toDay": 31,
+  "toMonth": 3,
+  "toYear": 2023,
+  "eventId": null,
+  "eventName": null,
+  "marketTypesCollection": [
+    "WIN",
+    "PLACE"
+  ],
+  "countriesCollection": [
+    "GB",
+    "IE"
+  ],
+  "fileTypeCollection": [
+    "M"
+  ]
+}
+2025-07-22 21:07:03,131 - BetfairDownloader - DEBUG - _log_api_request:114 - API Response Status: 200
+2025-07-22 21:07:03,131 - BetfairDownloader - ERROR - _handle_api_error:127 - API Error in get_download_list: Expecting value: line 4 column 1 (char 6)
+2025-07-22 21:07:03,131 - BetfairDownloader - ERROR - download_and_process_data:497 - No files found to download

@@ -1,0 +1,223 @@
+import pandas as pd
+import json
+import numpy as np
+from datetime import datetime
+import logging
+
+def parse_betfair_json_to_csv(csv_file_path, output_file_path=None):
+    """
+    Parse Betfair historical data from CSV with raw JSON lines to properly structured CSV
+    
+    Args:
+        csv_file_path: Path to the CSV file with raw_line column containing JSON
+        output_file_path: Path for output CSV (optional)
+    """
+    
+    # Read the existing CSV
+    df = pd.read_csv(csv_file_path)
+    
+    print(f"Original data shape: {df.shape}")
+    print(f"Columns: {list(df.columns)}")
+    
+    # Parse JSON from raw_line column
+    parsed_data = []
+    
+    for idx, row in df.iterrows():
+        try:
+            # Parse the JSON from raw_line
+            json_data = json.loads(row['raw_line'])
+            
+            # Create a flat dictionary
+            flat_record = {
+                'original_timestamp': row['timestamp'],
+                'file_source': row['file_source'],
+                'operation': json_data.get('op'),  # Operation type (mcm = market change message)
+                'clock': json_data.get('clk'),     # Clock/sequence number
+                'publish_time': json_data.get('pt'), # Publish time (Unix timestamp)
+                'connection_time': json_data.get('ct'), # Connection time
+            }
+            
+            # Convert publish time to readable datetime if available
+            if json_data.get('pt'):
+                try:
+                    flat_record['publish_datetime'] = datetime.fromtimestamp(int(json_data['pt'])/1000)
+                except:
+                    flat_record['publish_datetime'] = None
+            
+            # Handle market change data
+            if 'mc' in json_data and json_data['mc']:
+                for market_idx, market in enumerate(json_data['mc']):
+                    market_record = flat_record.copy()
+                    market_record.update({
+                        'market_id': market.get('id'),
+                        'market_definition_bet_delay': market.get('marketDefinition', {}).get('betDelay'),
+                        'market_definition_betting_type': market.get('marketDefinition', {}).get('bettingType'),
+                        'market_definition_bsp_market': market.get('marketDefinition', {}).get('bspMarket'),
+                        'market_definition_complete': market.get('marketDefinition', {}).get('complete'),
+                        'market_definition_country_code': market.get('marketDefinition', {}).get('countryCode'),
+                        'market_definition_cross_matching': market.get('marketDefinition', {}).get('crossMatching'),
+                        'market_definition_discount_allowed': market.get('marketDefinition', {}).get('discountAllowed'),
+                        'market_definition_event_id': market.get('marketDefinition', {}).get('eventId'),
+                        'market_definition_event_type_id': market.get('marketDefinition', {}).get('eventTypeId'),
+                        'market_definition_in_play': market.get('marketDefinition', {}).get('inPlay'),
+                        'market_definition_market_base_rate': market.get('marketDefinition', {}).get('marketBaseRate'),
+                        'market_definition_market_time': market.get('marketDefinition', {}).get('marketTime'),
+                        'market_definition_market_type': market.get('marketDefinition', {}).get('marketType'),
+                        'market_definition_number_of_active_runners': market.get('marketDefinition', {}).get('numberOfActiveRunners'),
+                        'market_definition_number_of_winners': market.get('marketDefinition', {}).get('numberOfWinners'),
+                        'market_definition_open_date': market.get('marketDefinition', {}).get('openDate'),
+                        'market_definition_persistence_enabled': market.get('marketDefinition', {}).get('persistenceEnabled'),
+                        'market_definition_regulators': market.get('marketDefinition', {}).get('regulators'),
+                        'market_definition_rules_has_date_expiry': market.get('marketDefinition', {}).get('rulesHasDateExpiry'),
+                        'market_definition_status': market.get('marketDefinition', {}).get('status'),
+                        'market_definition_suspend_time': market.get('marketDefinition', {}).get('suspendTime'),
+                        'market_definition_timezone': market.get('marketDefinition', {}).get('timezone'),
+                        'market_definition_turn_in_play_enabled': market.get('marketDefinition', {}).get('turnInPlayEnabled'),
+                        'market_definition_venue': market.get('marketDefinition', {}).get('venue'),
+                        'market_definition_version': market.get('marketDefinition', {}).get('version'),
+                    })
+                    
+                    # Convert market time to readable datetime
+                    if market.get('marketDefinition', {}).get('marketTime'):
+                        try:
+                            market_record['market_definition_market_datetime'] = datetime.fromtimestamp(
+                                int(market['marketDefinition']['marketTime'])/1000
+                            )
+                        except:
+                            market_record['market_definition_market_datetime'] = None
+                    
+                    # Handle runners data
+                    if 'rc' in market and market['rc']:
+                        for runner in market['rc']:
+                            runner_record = market_record.copy()
+                            runner_record.update({
+                                'runner_id': runner.get('id'),
+                                'runner_fullImage_price': None,
+                                'runner_last_price_traded': runner.get('ltp'),
+                                'runner_total_matched': runner.get('tv'),
+                                'runner_removal_date': runner.get('removalDate'),
+                                'runner_adjustment_factor': runner.get('adjustmentFactor'),
+                                'runner_handicap': runner.get('hc'),
+                            })
+                            
+                            # Handle available to back prices
+                            if 'batb' in runner and runner['batb']:
+                                for price_idx, price_data in enumerate(runner['batb']):
+                                    runner_record[f'back_price_{price_idx}'] = price_data[0] if len(price_data) > 0 else None
+                                    runner_record[f'back_size_{price_idx}'] = price_data[1] if len(price_data) > 1 else None
+                            
+                            # Handle available to lay prices
+                            if 'batl' in runner and runner['batl']:
+                                for price_idx, price_data in enumerate(runner['batl']):
+                                    runner_record[f'lay_price_{price_idx}'] = price_data[0] if len(price_data) > 0 else None
+                                    runner_record[f'lay_size_{price_idx}'] = price_data[1] if len(price_data) > 1 else None
+                            
+                            # Handle traded prices
+                            if 'batb' in runner and runner['batb']:
+                                runner_record['best_back_price'] = runner['batb'][0][0] if len(runner['batb']) > 0 and len(runner['batb'][0]) > 0 else None
+                                runner_record['best_back_size'] = runner['batb'][0][1] if len(runner['batb']) > 0 and len(runner['batb'][0]) > 1 else None
+                            
+                            if 'batl' in runner and runner['batl']:
+                                runner_record['best_lay_price'] = runner['batl'][0][0] if len(runner['batl']) > 0 and len(runner['batl'][0]) > 0 else None
+                                runner_record['best_lay_size'] = runner['batl'][0][1] if len(runner['batl']) > 0 and len(runner['batl'][0]) > 1 else None
+                            
+                            parsed_data.append(runner_record)
+                    else:
+                        # Market data without runner data
+                        parsed_data.append(market_record)
+            else:
+                # Data without market change
+                parsed_data.append(flat_record)
+                
+        except json.JSONDecodeError as e:
+            print(f"Error parsing JSON at row {idx}: {e}")
+            continue
+        except Exception as e:
+            print(f"Error processing row {idx}: {e}")
+            continue
+    
+    # Create DataFrame from parsed data
+    if parsed_data:
+        result_df = pd.DataFrame(parsed_data)
+        
+        # Sort by publish_time if available
+        if 'publish_time' in result_df.columns:
+            result_df = result_df.sort_values('publish_time').reset_index(drop=True)
+        
+        print(f"\nParsed data shape: {result_df.shape}")
+        print(f"Columns: {list(result_df.columns)}")
+        print(f"\nSample of parsed data:")
+        print(result_df.head())
+        
+        # Save to CSV
+        if output_file_path is None:
+            output_file_path = csv_file_path.replace('.csv', '_parsed.csv')
+        
+        result_df.to_csv(output_file_path, index=False)
+        print(f"\nParsed data saved to: {output_file_path}")
+        
+        return result_df
+    else:
+        print("No data could be parsed!")
+        return None
+
+def analyze_betfair_data_structure(csv_file_path, sample_size=10):
+    """
+    Analyze the structure of raw Betfair data to understand what fields are available
+    """
+    df = pd.read_csv(csv_file_path)
+    
+    print("=== BETFAIR DATA STRUCTURE ANALYSIS ===")
+    print(f"Total rows: {len(df)}")
+    print(f"Columns: {list(df.columns)}")
+    
+    # Analyze raw_line JSON structure
+    json_samples = []
+    for idx in range(min(sample_size, len(df))):
+        try:
+            json_data = json.loads(df.iloc[idx]['raw_line'])
+            json_samples.append(json_data)
+        except:
+            continue
+    
+    if json_samples:
+        print(f"\n=== SAMPLE JSON STRUCTURES ===")
+        for i, sample in enumerate(json_samples[:3]):
+            print(f"\nSample {i+1}:")
+            print(json.dumps(sample, indent=2)[:500] + "..." if len(str(sample)) > 500 else json.dumps(sample, indent=2))
+        
+        # Collect all unique keys
+        all_keys = set()
+        for sample in json_samples:
+            def collect_keys(obj, prefix=""):
+                if isinstance(obj, dict):
+                    for key, value in obj.items():
+                        full_key = f"{prefix}.{key}" if prefix else key
+                        all_keys.add(full_key)
+                        if isinstance(value, (dict, list)):
+                            collect_keys(value, full_key)
+                elif isinstance(obj, list) and obj:
+                    collect_keys(obj[0], prefix + "[0]")
+            
+            collect_keys(sample)
+        
+        print(f"\n=== ALL AVAILABLE FIELDS ===")
+        for key in sorted(all_keys):
+            print(f"  - {key}")
+
+# Example usage:
+if __name__ == "__main__":
+    # First analyze the data structure
+    csv_file = "betfair_data/csv/betfair_horse_racing_data.csv"  # Update this path
+    
+    print("Step 1: Analyzing data structure...")
+    analyze_betfair_data_structure(csv_file)
+    
+    print("\n" + "="*50)
+    print("Step 2: Parsing to structured CSV...")
+    parsed_df = parse_betfair_json_to_csv(csv_file)
+    
+    if parsed_df is not None:
+        print(f"\nSuccess! Parsed {len(parsed_df)} records")
+        print("\nData types:")
+        print(parsed_df.dtypes)
